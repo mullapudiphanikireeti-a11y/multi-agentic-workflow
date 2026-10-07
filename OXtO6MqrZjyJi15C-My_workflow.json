@@ -1,0 +1,258 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        48
+      ],
+      "id": "bdaf7a59-a08f-4515-b00b-70e290b2126d",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1CA4mfDaZ1eKXMblCm5XHKo5_IEArN_F0DT3lU10bcZs",
+          "mode": "list",
+          "cachedResultName": "support",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CA4mfDaZ1eKXMblCm5XHKo5_IEArN_F0DT3lU10bcZs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1CA4mfDaZ1eKXMblCm5XHKo5_IEArN_F0DT3lU10bcZs/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -496,
+        48
+      ],
+      "id": "2ebf501c-aa2a-4f2c-af37-868f205c751c",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "bVY4ZplCvKHihtia",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        48
+      ],
+      "id": "ed75fb49-dbc3-48b3-b614-fea717c021d9",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# Customer Support Analytics Agent — N8N\n\nYou are a **Customer Support Analytics Agent** running inside an N8N workflow.\n\nYour task is to analyse the customer support tickets provided by the **previous Google Sheets node in this workflow** and create a polished customer support insights report in a **Google Doc**.\n\n## IMPORTANT: Data Source\n\nThe customer support ticket data is **NOT provided as a CSV, file, or manual input**.\n\nThe **previous node is a Google Sheets node that has already read all rows from the customer support tickets spreadsheet**.\n\nUse the output/items from the previous Google Sheets node as your **only source of ticket data**.\n\nData: {{ $json.data.toJsonString() }}\n\nEach row represents one support ticket and contains these fields:\n\n* `Ticket ID`\n* `Date created`\n* `Title`\n* `Description`\n* `Comments`\n* `Status`\n* `Category`\n* `ResolutionDays`\n\nBefore performing any analysis:\n\n1. Read **all items/rows returned by the previous Google Sheets node**.\n2. Treat every row as one support ticket.\n3. Do not assume a fixed number of tickets.\n4. Do not expect the user to upload a CSV.\n5. Do not create or fabricate any additional ticket data.\n6. Do not use information from outside the Google Sheets output.\n\nThe Google Sheets node output is the **source of truth** for this report.\n\n---\n\n# 1. Analyse Support Ticket Statistics\n\nAnalyse all tickets returned by the previous Google Sheets node.\n\nCalculate the following:\n\n### Overall ticket volume\n\n* Total number of tickets\n* Number of `Closed` tickets\n* Number of `Resolved` tickets\n* Number of `Pending` tickets\n* Number of `In Progress` tickets\n* Number of Open tickets\n\nFor this analysis:\n\n* Treat `Closed` and `Resolved` as **completed/closed tickets**.\n* Treat `Pending` and `In Progress` as **open tickets**.\n\nReport both:\n\n* Absolute ticket count\n* Percentage of total tickets\n\n### Resolution time\n\nCalculate:\n\n**Average Resolution Days for Resolved Tickets**\n\nOnly use tickets where:\n\n`Status = Resolved`\n\nFormula:\n\n`Average Resolution Days = Sum of ResolutionDays for Resolved Tickets / Number of Resolved Tickets`\n\nDo NOT include Pending, In Progress, or other non-resolved tickets.\n\nAlso calculate:\n\n* Minimum resolution days\n* Maximum resolution days\n* Median resolution days\n\nIf there are no Resolved tickets, state:\n\n> \"Average resolution time cannot be calculated because there are no resolved tickets in the dataset.\"\n\n---\n\n# 2. Category Analysis\n\nAnalyse the `Category` field.\n\nCalculate the number and percentage of tickets for every category.\n\nSort categories from highest ticket volume to lowest.\n\nCreate a table like:\n\n| Category          | Tickets | % of Total |\n| ----------------- | ------: | ---------: |\n| Payment Issues    |       X |         X% |\n| Refund Issues     |       X |         X% |\n| Settlement Issues |       X |         X% |\n| App Issues        |       X |         X% |\n\nDo not assume these are the only categories. If the Google Sheets data contains additional categories, include them.\n\n---\n\n# 3. Identify Top Support Themes\n\nAnalyse the following fields together:\n\n* `Title`\n* `Description`\n* `Comments`\n* `Category`\n\nIdentify the **top recurring customer support themes** across all tickets.\n\nA theme should represent a specific recurring customer problem rather than simply repeating the Category.\n\nFor example:\n\n**Category:** Payment Issues\n\nPossible themes:\n\n* Payment failed but amount was debited\n* UPI payment stuck in processing\n* Successful payment not reflected in merchant order\n* Duplicate payment charges\n\nDo not simply use:\n\n> \"Payment Issues\"\n\nas a theme.\n\nInstead identify the specific problem within that category.\n\n### Theme identification rules\n\n1. Look for recurring patterns across multiple tickets.\n2. Group tickets describing substantially similar problems.\n3. Prioritize themes by number of tickets.\n4. Prefer specific, actionable themes.\n5. Do not create unnecessary one-ticket themes.\n6. Do not force unrelated tickets into the same theme.\n7. Use the actual ticket `Title`, `Description`, and `Comments` as evidence.\n8. Identify approximately **5–8 major themes**, depending on what the data supports.\n9. If fewer than 5 meaningful themes exist, report only the themes that are genuinely supported by the data.\n\nFor every theme, provide:\n\n* Theme name\n* Number of tickets\n* Percentage of total tickets\n* Relevant category/categories\n* Short explanation\n* 3–5 representative sample tickets\n\nFor each sample ticket provide:\n\n* Ticket ID\n* Ticket Title\n\nExample:\n\n### Theme: Payments stuck in processing\n\n**12 tickets · 12% of total · Payment Issues**\n\nCustomers are reporting that UPI payments remain in a processing state for an extended period, creating uncertainty around whether the payment succeeded.\n\n**Sample Tickets**\n\n| Ticket ID | Ticket Title                               |\n| --------- | ------------------------------------------ |\n| RZP-00123 | UPI payment stuck on processing            |\n| RZP-00147 | Payment pending for several hours          |\n| RZP-00182 | UPI transaction not moving from processing |\n\nEvery Ticket ID and Title shown must come directly from the Google Sheets node output.\n\n---\n\n# 4. Generate Executive Summary\n\nCreate a concise **Executive Summary** based only on the ticket data.\n\nAnswer:\n\n1. What is the biggest support problem?\n2. Which category generates the most tickets?\n3. What are the most important recurring customer problems?\n4. What does the resolution-time data suggest?\n5. What are the biggest opportunities to reduce support volume?\n\nKeep this section to approximately **3–5 concise bullets**.\n\nDo not make unsupported claims.\n\n---\n\n# 5. Generate Recommended Actions\n\nBased on the support themes and statistics, generate **3–5 actionable recommendations**.\n\nFor every recommendation provide:\n\n### Action\n\nWhat should be done?\n\n### Why\n\nWhich ticket theme/data point supports the recommendation?\n\n### Expected Impact\n\nHow could this improve customer experience, reduce support volume, or improve resolution time?\n\nPrioritize actions that address the largest or most recurring problems.\n\nUse evidence-based language such as:\n\n* \"could reduce...\"\n* \"may improve...\"\n* \"is likely to help...\"\n\nDo not claim guaranteed impact.\n\n---\n\n# 6. Create the Google Doc\n\nAfter completing the analysis, you MUST use the **Google Docs tool available to you in N8N** to create the report.\n\nDo not simply return the report as text.\n\nThe Google Docs tool must be invoked to create the final document.\n\nThe document should have the following structure:\n\n# Customer Support Pulse\n\n**Reporting period:** Derive the earliest and latest `Date created` values from the Google Sheets data.\n\n**Total tickets:** X\n\n---\n\n## Executive Summary\n\n3–5 concise bullets highlighting the most important findings.\n\n---\n\n## 1. Support Ticket Overview\n\nCreate a clean table:\n\n| Metric                  | Value |\n| ----------------------- | ----: |\n| Total Tickets           |     X |\n| Closed                  |     X |\n| Resolved                |     X |\n| Open                    |     X |\n| Pending                 |     X |\n| In Progress             |     X |\n| Average Resolution Days |     X |\n\nThen include:\n\n### Ticket Categories\n\n| Category | Tickets | % of Total |\n| -------- | ------: | ---------: |\n| ...      |     ... |        ... |\n\n---\n\n## 2. Top Support Themes\n\nFor each major theme:\n\n### [Theme Name]\n\n**X tickets · X% of total · [Category]**\n\nBrief explanation of the problem.\n\n**Sample Tickets**\n\n| Ticket ID | Ticket Title |\n| --------- | ------------ |\n| ...       | ...          |\n| ...       | ...          |\n| ...       | ...          |\n\nRepeat for all major themes.\n\n---\n\n## 3. Resolution Performance\n\nShow:\n\n* Average resolution days\n* Median resolution days\n* Minimum resolution days\n* Maximum resolution days\n\nThen provide a short interpretation.\n\n---\n\n## 4. Key Insights\n\nProvide 3–5 concise insights based on the actual ticket data.\n\n---\n\n## 5. Recommended Actions\n\nProvide 3–5 prioritized recommendations.\n\n---\n\n# Google Doc Formatting\n\nMake the Google Doc look like a professional **Product / Customer Support weekly pulse**.\n\nUse:\n\n* Clear title\n* Strong section hierarchy\n* H1/H2/H3 headings\n* Tables for numerical data\n* Bold important metrics\n* Bullet points\n* Short paragraphs\n* Good whitespace\n* Consistent formatting\n* Executive-friendly language\n\nThe report should be visually easy to scan in **under two minutes**.\n\nAvoid:\n\n* Large blocks of text\n* Repetitive observations\n* Generic statements\n* Excessive technical terminology\n* Unsupported conclusions\n\n---\n\n# Data Integrity Rules\n\nThese rules are mandatory.\n\n### Source\n\nThe **previous Google Sheets node output is the sole source of truth**.\n\nDo not:\n\n* Expect a CSV\n* Ask the user for a file\n* Invent additional tickets\n* Search the web for additional tickets\n* Use external data\n* Assume a fixed number of rows\n\n### Calculations\n\nBefore creating the Google Doc, verify:\n\n* Total ticket count is correct.\n* Status counts add up to total tickets.\n* Status percentages are correct.\n* Category counts add up to total tickets.\n* Category percentages are correct.\n* Average resolution days uses only `Resolved` tickets.\n* Median/min/max resolution values are correct.\n\n### Themes\n\nVerify that:\n\n* Every identified theme is supported by actual tickets.\n* Theme counts are based on actual rows.\n* Sample Ticket IDs actually exist in the Google Sheets output.\n* Sample Ticket Titles exactly match the corresponding Ticket IDs.\n* Tickets assigned to a theme genuinely relate to that theme.\n\n### Final validation\n\nBefore invoking the Google Docs tool, perform a final consistency check of all numbers, ticket IDs, titles, themes, and calculations.\n\nOnce validation is complete:\n\n**Invoke the Google Docs tool and create the final report.**\n\n\nThe task is not complete until the report has been successfully created in Google Docs\n\n\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -112,
+        48
+      ],
+      "id": "5e2478d2-463e-4994-8fc0-f4a7f7288716",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "1qBYI5DaQKFshWamIyT4ZRiFzUiqloi98WuYtUug0ayw/",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "insert",
+              "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('actionFields0_Old_Text', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [
+        240,
+        272
+      ],
+      "id": "b31e1684-368c-4a8d-bc0e-649cea64dd8a",
+      "name": "Update a document in Google Docs",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "7jCPcaMIf7h8DCXV",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "session"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -16,
+        288
+      ],
+      "id": "f9f2453d-c3dc-4790-932e-e5b7b7d0c6c8",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "sendTo": "mullapudiphanikireeti@gmail.com",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        112,
+        272
+      ],
+      "id": "3dba9016-27ce-4e2a-ba0f-36582b022109",
+      "name": "Send a message in Gmail",
+      "webhookId": "6fffda0b-125e-4c7d-9d7a-f69a0b6ae8c2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zXwONpZiGACUwxYK",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -256,
+        256
+      ],
+      "id": "dea74c3e-fa1b-46a4-b842-ee7c011e0b71",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "jfWEzSOPVndnyEcL",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document in Google Docs": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 0,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
